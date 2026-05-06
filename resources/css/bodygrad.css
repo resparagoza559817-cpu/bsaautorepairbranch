@@ -1,0 +1,20 @@
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(45deg, #164e63, #8ce0e0); /* Dark Cyan to Light Cyan */
+    animation: bgslide 1.5s ease-in forwards;
+    @keyframes bgslide {
+    0% {
+        background-position: -200px;
+        opacity: 0;
+    }
+
+    100% {
+        background-position: center;
+        opacity: 2;
+    }
+}
+
+}
+
+
