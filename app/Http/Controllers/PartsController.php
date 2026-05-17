@@ -52,4 +52,18 @@ class PartsController extends Controller
 
     return redirect()->route('stockin')->with('success', 'Stock updated successfully!');
 }
+
+// Add this inside the PartsController class
+public function delete($id)
+{
+    $stockIn = \App\Models\StockIn::findOrFail($id);
+    
+    // Optional: If you want to subtract the quantity from the Part's total stock when deleting:
+    // $part = \App\Models\Part::find($stockIn->part_id);
+    // if($part) { $part->decrement('stock_qty', $stockIn->quantity_received); }
+
+    $stockIn->delete();
+
+    return redirect()->route('stockin')->with('success', 'Stock entry deleted.');
+}
 }

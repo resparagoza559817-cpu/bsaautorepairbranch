@@ -3,179 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Inventory</title>
+    <title>Stock In - BSA Auto Repair</title>
     @vite(['resources/css/app.css'])
 </head>
-<body class="bg-[#232323] text-white overflow-x-hidden">
-    @include('layouts.logout')
+<body class="bg-[#1a1a1a] text-white flex min-h-screen">
 
-    <div class="flex h-screen overflow-hidden"> 
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 fixed inset-y-0 left-0 bg-[#121212] border-r border-gray-800">
         @include('layouts.sidenav')
+        <div class="absolute bottom-5 left-5">
+            @include('layouts.logout')
+        </div>
+    </aside>
 
-        <main class="flex-1 p-8 overflow-y-auto bg-gradient-to-br from-[#232323] to-[#1a2e2e]">
-            <h1 class="text-3xl font-bold text-white mb-6">Stock Inventory</h1>
-
-            <!-- ALERT SECTION ADDED HERE[cite: 21, 29] -->
-            @if(session('success'))
-                <div class="mb-6 p-4 bg-cyan-500/20 border border-cyan-500 text-cyan-400 rounded-xl shadow-lg">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            @if($errors->any())
-                <div class="mb-6 p-4 bg-red-500/20 border border-red-500 text-red-400 rounded-xl">
-                    <ul class="list-disc pl-5">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            <div class="max-w-7xl mx-auto flex gap-6">
-                <!-- TABLE SECTION -->
-                <div class="w-[50%]">
-                    <input type="text" id="searchPart" placeholder="Search inventory..." onkeyup="filterParts()"
-                        class="w-full mb-4 bg-[#1f1f1f] border border-gray-700 text-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all" />
-
-                    <div style="scrollbar-width: none;" class="h-[550px] overflow-y-auto rounded-2xl border border-gray-700 bg-[#1f1f1f] shadow-2xl">
-                        <table class="w-full text-sm text-left text-gray-300">
-                            <thead class="bg-[#1f1f1f] sticky top-0 border-b border-gray-700 text-gray-500 uppercase text-[10px] tracking-wider">
-                                <tr>
-                                    <th class="px-6 py-4">Part Name</th>
-                                    <th class="px-6 py-4">In Stock</th>
-                                    <th class="px-6 py-4">Price</th>
-                                </tr>
-                            </thead>
-                            <tbody id="partTable">
-                                @foreach($parts as $p)
-                                <tr class="hover:bg-[#2a2a2a] cursor-pointer border-b border-gray-800/50 transition-colors" 
-                                    onclick="selectPart({{ $p->part_id }}, '{{ addslashes($p->part_name) }}', '{{ addslashes($p->description) }}', {{ $p->price }})">
-                                    <td class="px-6 py-4 text-cyan-300 font-medium">{{ $p->part_name }}</td>
-                                    <td class="px-6 py-4">
-                                        <span class="{{ $p->stock_qty < 5 ? 'text-red-500' : 'text-green-400' }} font-bold">
-                                            {{ $p->stock_qty }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 text-gray-400">₱{{ number_format($p->price, 2) }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+    <!-- Main Content -->
+    <main class="flex-1 ml-64 p-10">
+        <div class="max-w-7xl mx-auto">
+            
+            <div class="flex flex-row gap-10 items-start">
+                
+                <!-- 📦 LEFT SIDE: STOCK HISTORY TABLE -->
+                <div class="w-[60%]">
+                    <h1 class="text-3xl font-black mb-8 tracking-tight uppercase">Inventory / Stock In</h1>
+                    
+                    <div class="overflow-hidden rounded-2xl border border-gray-800 bg-[#121212] shadow-2xl">
+                        <div class="max-h-[600px] overflow-y-auto custom-scrollbar">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-[#1a1a1a] text-gray-500 uppercase text-xs sticky top-0 z-10">
+                                    <tr>
+                                        <th class="px-6 py-4 border-b border-gray-800">Part Name</th>
+                                        <th class="px-6 py-4 border-b border-gray-800 text-center">Qty</th>
+                                        <th class="px-6 py-4 border-b border-gray-800">Cost/Unit</th>
+                                        <th class="px-6 py-4 border-b border-gray-800">Date</th>
+                                        <th class="px-6 py-4 border-b border-gray-800 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-800">
+                                    @foreach($history as $item)
+                                    <tr class="hover:bg-[#1f1f1f] transition-colors group">
+                                        <td class="px-6 py-4 font-bold text-[#00ffff]">
+                                            {{ $item->part->part_name ?? 'Unknown Part' }}
+                                        </td>
+                                        <td class="px-6 py-4 text-center text-[#00ff88]">
+                                            {{ $item->quantity_received }}
+                                        </td>
+                                        <td class="px-6 py-4 text-gray-400">
+                                            ₱{{ number_format($item->cost_per_unit, 2) }}
+                                        </td>
+                                        <td class="px-6 py-4 text-xs text-gray-500">
+                                            {{ \Carbon\Carbon::parse($item->stock_in_arrived)->format('M d, Y') }}
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            <!-- DELETE ACTION -->
+                                            <form action="{{ route('stockin.delete', $item->id) }}" method="POST" 
+                                                  onsubmit="return confirm('Permanently remove this stock record?')">
+                                                @csrf
+                                                <button type="submit" class="text-red-600 hover:text-red-400 font-black text-[10px] tracking-widest uppercase transition-all">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <!-- FORM SECTION -->
-                <div class="w-[50%]">
-                    <form id="stockForm" method="POST" action="{{ route('stockin.store') }}">
+                <!-- 📝 RIGHT SIDE: STOCK IN FORM -->
+                <div class="w-[40%] sticky top-10">
+                    <form action="{{ route('stockin.store') }}" method="POST">
                         @csrf
-                        <input type="hidden" id="part_id" name="part_id">
-                        
-                        <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-8 w-full shadow-2xl border-t-4 border-t-cyan-500">
-                            <h2 class="text-white text-xl font-bold mb-6">Stock Adjustment</h2>
-                            
-                            <div class="space-y-5">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Part Name</label>
-                                        <input type="text" id="display_name" name="part_name" list="partSuggestions" oninput="syncIdFromType(this.value)"
-                                            class="w-full mt-1 bg-[#2a2a2a] border border-[#444] text-cyan-400 rounded-lg px-4 py-2.5 text-sm font-bold outline-none focus:border-cyan-500" required/>
-                                        <datalist id="partSuggestions">
-                                            @foreach($parts as $p)
-                                                <option data-id="{{ $p->part_id }}" data-desc="{{ $p->description }}" data-price="{{ $p->price }}" value="{{ $p->part_name }}">
-                                            @endforeach
-                                        </datalist>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Retail Price</label>
-                                        <input type="number" step="0.01" id="form_price" name="price" required
-                                            class="w-full mt-1 bg-[#2a2a2a] border border-[#444] text-gray-100 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-cyan-500"/>
-                                    </div>
+                        <div class="bg-[#121212] border border-gray-800 rounded-3xl p-8 shadow-2xl">
+                            <div class="flex items-center gap-3 mb-8">
+                                <div class="w-3 h-3 bg-[#00ffff] rounded-full shadow-[0_0_10px_rgba(0,255,255,0.5)]"></div>
+                                <h2 class="text-white text-lg font-bold uppercase tracking-widest">New Stock Entry</h2>
+                            </div>
+
+                            <div class="space-y-4">
+                                <!-- Part Selection/Input -->
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Part Name</label>
+                                    <input type="text" name="part_name" required list="part-list"
+                                           class="w-full bg-[#1a1a1a] border border-gray-700 text-gray-100 rounded-xl px-4 py-3 text-sm focus:border-[#00ffff] outline-none transition-all">
+                                    <datalist id="part-list">
+                                        @foreach($parts as $part)
+                                            <option value="{{ $part->part_name }}">
+                                        @endforeach
+                                    </datalist>
                                 </div>
 
+                                <!-- Supplier -->
                                 <div>
-                                    <label class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Part Description</label>
-                                    <textarea id="form_description" name="description" rows="2"
-                                        class="w-full mt-1 bg-[#2a2a2a] border border-[#444] text-gray-100 rounded-lg px-4 py-2 text-sm outline-none focus:border-cyan-500"></textarea>
-                                </div>
-
-                                <hr class="border-[#333]">
-
-                                <div>
-                                    <label class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Supplier</label>
-                                    <select name="supplier_id" required class="w-full mt-1 bg-[#2a2a2a] border border-[#444] text-gray-100 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-cyan-500">
-                                        <option value="">Select Supplier</option>
-                                        @foreach($suppliers as $s)
-                                            <option value="{{ $s->supplier_id }}">{{ $s->supplier_name }}</option>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Supplier</label>
+                                    <select name="supplier_id" required 
+                                            class="w-full bg-[#1a1a1a] border border-gray-700 text-gray-100 rounded-xl px-4 py-3 text-sm focus:border-[#00ffff] outline-none appearance-none">
+                                        <option value="" disabled selected>Select Supplier</option>
+                                        @foreach($suppliers as $supplier)
+                                            <option value="{{ $supplier->supplier_id }}">{{ $supplier->supplier_name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
 
-                                <div class="flex gap-4">
-                                    <div class="flex-1">
-                                        <label class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Qty Received</label>
-                                        <input type="number" name="quantity_received" required class="w-full mt-1 bg-[#2a2a2a] border border-[#444] text-gray-100 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-cyan-500"/>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Retail Price</label>
+                                        <input type="number" step="0.01" name="price" required 
+                                               class="w-full bg-[#1a1a1a] border border-gray-700 text-gray-100 rounded-xl px-4 py-3 text-sm focus:border-[#00ffff] outline-none">
                                     </div>
-                                    <div class="flex-1">
-                                        <label class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Cost Per Unit</label>
-                                        <input type="number" step="0.01" name="cost_per_unit" required class="w-full mt-1 bg-[#2a2a2a] border border-[#444] text-gray-100 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-cyan-500"/>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Qty Received</label>
+                                        <input type="number" name="quantity_received" required 
+                                               class="w-full bg-[#1a1a1a] border border-gray-700 text-gray-100 rounded-xl px-4 py-3 text-sm focus:border-[#00ffff] outline-none">
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Date Arrived</label>
-                                    <input type="datetime-local" name="stock_in_date" value="{{ date('Y-m-d\TH:i') }}" required
-                                        class="w-full mt-1 bg-[#2a2a2a] border border-[#444] text-gray-100 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-cyan-500"/>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Cost Per Unit (Supply Price)</label>
+                                    <input type="number" step="0.01" name="cost_per_unit" required 
+                                           class="w-full bg-[#1a1a1a] border border-gray-700 text-gray-100 rounded-xl px-4 py-3 text-sm focus:border-[#00ffff] outline-none">
+                                </div>
+
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Date Arrived</label>
+                                    <input type="datetime-local" name="stock_in_date" value="{{ now()->format('Y-m-d\TH:i') }}" required 
+                                           class="w-full bg-[#1a1a1a] border border-gray-700 text-gray-100 rounded-xl px-4 py-3 text-sm focus:border-[#00ffff] outline-none">
                                 </div>
                             </div>
 
-                            <div class="mt-8">
-                                <button type="submit" class="w-full bg-cyan-500 hover:bg-cyan-400 text-black rounded-xl py-4 text-sm font-black uppercase tracking-[0.2em] shadow-lg shadow-cyan-500/20 transition-all active:scale-95">
-                                    Complete Stock In
-                                </button>
-                            </div>
+                            <button type="submit" class="w-full mt-8 bg-[#00ffff] hover:bg-[#00dada] text-black rounded-xl py-4 text-xs font-black transition-all shadow-lg uppercase tracking-widest active:scale-95">
+                                Complete Stock In
+                            </button>
                         </div>
                     </form>
                 </div>
+
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
-    <script>
-        function syncIdFromType(val) {
-            const options = document.querySelectorAll('#partSuggestions option');
-            const hiddenIdInput = document.getElementById("part_id");
-            const descInput = document.getElementById("form_description");
-            const priceInput = document.getElementById("form_price");
-            
-            hiddenIdInput.value = ""; 
-            options.forEach(option => {
-                if (option.value === val) {
-                    hiddenIdInput.value = option.getAttribute('data-id');
-                    descInput.value = option.getAttribute('data-desc');
-                    priceInput.value = option.getAttribute('data-price');
-                }
-            });
-        }
-
-        function selectPart(id, name, desc, price) {
-            document.getElementById("part_id").value = id;
-            document.getElementById("display_name").value = name;
-            document.getElementById("form_description").value = desc;
-            document.getElementById("form_price").value = price;
-            
-            const display = document.getElementById("display_name");
-            display.classList.add('ring-2', 'ring-cyan-500');
-            setTimeout(() => display.classList.remove('ring-2'), 500);
-        }
-
-        function filterParts() {
-            let input = document.getElementById("searchPart").value.toLowerCase();
-            let rows = document.querySelectorAll("#partTable tr");
-            rows.forEach(row => {
-                row.style.display = row.innerText.toLowerCase().includes(input) ? "" : "none";
-            });
-        }
-    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #121212; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #444; }
+    </style>
 </body>
 </html>

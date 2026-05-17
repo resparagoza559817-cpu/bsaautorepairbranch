@@ -12,10 +12,18 @@ class Part extends Model
     protected $table = 'part'; 
     protected $primaryKey = 'part_id';
 
-    protected $fillable = [
-        'part_name',
-        'description', 
-        'price',
-        'stock_qty' 
-    ];
+   protected $fillable = [
+    'category_id',
+    'part_name',
+    'brand',
+    'description', 
+    'price',
+    'stock_qty',
+    'unit_of_measure' 
+];
+
+// Relationship to Category
+public function category() {
+    return $this->belongsTo(Category::class, 'category_id', 'category_id');
+}
 }
